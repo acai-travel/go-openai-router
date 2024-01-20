@@ -1,1 +1,1 @@
-# go-llm-router
+# go-openai-router
