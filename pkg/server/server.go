@@ -27,6 +27,7 @@ type RouterServer struct {
 	client            *azopenai.Client
 	ActiveConnections int
 	Latency           int64
+	Type              ServerConfigType
 	totalRequests     int64
 	totalLatency      int64
 }
@@ -37,6 +38,7 @@ func NewRouterServer(serverConfig ServerConfig) (*RouterServer, error) {
 		totalRequests:     0,
 		Latency:           0,
 		totalLatency:      0,
+		Type:              serverConfig.Type,
 	}
 	keyCredential := azcore.NewKeyCredential(serverConfig.ApiKey)
 	switch serverConfig.Type {

@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai"
@@ -18,6 +19,9 @@ type Router struct {
 // NewRouter creates an instance of the Router that routes requests to one or more openai/azureopenai servers
 func NewRouter(serverConfigs []server.ServerConfig, strategyType RouterStrategyType) (*Router, error) {
 	servers := []*server.RouterServer{}
+	if len(serverConfigs) == 0 {
+		return nil, fmt.Errorf("empty server config")
+	}
 	for _, serverConfig := range serverConfigs {
 		server, err := server.NewRouterServer(serverConfig)
 		if err != nil {
