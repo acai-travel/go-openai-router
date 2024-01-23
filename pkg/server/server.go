@@ -61,10 +61,8 @@ func NewRouterServer(serverConfig ServerConfig) (*RouterServer, error) {
 func (s *RouterServer) GetChatCompletions(ctx context.Context, body azopenai.ChatCompletionsOptions, options *azopenai.GetChatCompletionsOptions) (azopenai.GetChatCompletionsResponse, error) {
 	s.preFlight()
 	start := time.Now()
-	resp, err := s.client.GetChatCompletions(ctx, body, options)
-	elapsed := time.Since(start)
-	s.postFlight(elapsed.Milliseconds())
-	return resp, err
+	defer s.postFlight(start)
+	return s.client.GetChatCompletions(ctx, body, options)
 }
 
 // GetChatCompletionsStream - Return the chat completions for a given prompt as a sequence of events.
@@ -73,20 +71,19 @@ func (s *RouterServer) GetChatCompletions(ctx context.Context, body azopenai.Cha
 func (s *RouterServer) GetChatCompletionsStream(ctx context.Context, body azopenai.ChatCompletionsOptions, options *azopenai.GetChatCompletionsStreamOptions) (azopenai.GetChatCompletionsStreamResponse, error) {
 	s.preFlight()
 	start := time.Now()
-	resp, err := s.client.GetChatCompletionsStream(ctx, body, options)
-	elapsed := time.Since(start)
-	s.postFlight(elapsed.Milliseconds())
-	return resp, err
+	defer s.postFlight(start)
+	return s.client.GetChatCompletionsStream(ctx, body, options)
 }
 
 func (s *RouterServer) preFlight() {
 	s.ActiveConnections++
 }
 
-func (s *RouterServer) postFlight(responseTime int64) {
+func (s *RouterServer) postFlight(start time.Time) {
+	elapsed := time.Since(start)
 	s.ActiveConnections--
 	s.totalRequests++
-	s.totalLatency += responseTime
+	s.totalLatency += elapsed.Milliseconds()
 	s.Latency = s.totalLatency / s.totalRequests
 	slog.Debug("Average Latency for Server", "averageLatency", s.Latency, "totalLatency", s.totalLatency, "numberOfRequests", s.totalRequests)
 }

@@ -2,6 +2,7 @@ package server
 
 import (
 	"testing"
+	"time"
 )
 
 func TestNewServer(t *testing.T) {
@@ -36,17 +37,18 @@ func TestPostFlight(t *testing.T) {
 	s.ActiveConnections = 10
 	s.totalRequests = 20
 	s.totalLatency = 41
-	s.postFlight(1)
+	start := time.Now().Add(-15 * time.Second)
+	s.postFlight(start)
 	if s.ActiveConnections != 9 {
 		t.Fatalf("Incorrect Active Connections calculations %d", s.ActiveConnections)
 	}
 	if s.totalRequests != 21 {
 		t.Fatalf("Incorrect Total Requests calculations %d", s.totalRequests)
 	}
-	if s.totalLatency != 42 {
+	if s.totalLatency <= 41 {
 		t.Fatalf("Incorrect Total Latency calculations %d", s.totalLatency)
 	}
-	if s.Latency != 2 {
+	if s.Latency <= 2 {
 		t.Fatalf("Incorrect Latency calculations %d", s.Latency)
 	}
 }
