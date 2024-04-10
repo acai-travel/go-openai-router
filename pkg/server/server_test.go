@@ -7,7 +7,10 @@ import (
 
 func TestNewServer(t *testing.T) {
 	serverConfig := ServerConfig{
-		Type: OpenAiServerType,
+		Type:            OpenAiServerType,
+		Endpoint:        "https://azure-openai.com",
+		ApiKey:          "azure-openai-key",
+		AvailableModels: []string{"gpt-3.5-turbo", "gpt-4-turbo"},
 	}
 	_, err := NewRouterServer(serverConfig)
 	if err != nil {
@@ -15,7 +18,10 @@ func TestNewServer(t *testing.T) {
 	}
 
 	serverConfig = ServerConfig{
-		Type: "Foo",
+		Type:            "Foo",
+		Endpoint:        "https://azure-openai.com",
+		ApiKey:          "azure-openai-key",
+		AvailableModels: []string{"gpt-3.5-turbo", "gpt-4-turbo"},
 	}
 	_, err = NewRouterServer(serverConfig)
 	if err == nil {
@@ -56,7 +62,10 @@ func TestPostFlight(t *testing.T) {
 func getServer() RouterServer {
 	server, _ := NewRouterServer(
 		ServerConfig{
-			Type: AzureOpenAiServerType,
+			Type:            AzureOpenAiServerType,
+			Endpoint:        "https://azure-openai.com",
+			ApiKey:          "azure-openai-key",
+			AvailableModels: []string{"gpt-3.5-turbo", "gpt-4-turbo"},
 		},
 	)
 	return *server
