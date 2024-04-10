@@ -28,7 +28,10 @@ func TestNewRouter(t *testing.T) {
 
 func TestGetChatCompletions(t *testing.T) {
 	router := getRouter()
-	router.GetChatCompletions(context.TODO(), azopenai.ChatCompletionsOptions{}, nil)
+	deploymentName := "gpt-3.5-turbo"
+	router.GetChatCompletions(context.TODO(), azopenai.ChatCompletionsOptions{
+		DeploymentName: &deploymentName,
+	}, nil)
 	if router.requestCount != 1 {
 		t.Fatalf("Incorrect requests count %d", router.requestCount)
 	}
@@ -36,7 +39,10 @@ func TestGetChatCompletions(t *testing.T) {
 
 func TestGetChatCompletionsStream(t *testing.T) {
 	router := getRouter()
-	router.GetChatCompletionsStream(context.TODO(), azopenai.ChatCompletionsOptions{}, nil)
+	deploymentName := "gpt-3.5-turbo"
+	router.GetChatCompletions(context.TODO(), azopenai.ChatCompletionsOptions{
+		DeploymentName: &deploymentName,
+	}, nil)
 	if router.requestCount != 1 {
 		t.Fatalf("Incorrect requests count %d", router.requestCount)
 	}
@@ -45,7 +51,10 @@ func TestGetChatCompletionsStream(t *testing.T) {
 func getRouter() *Router {
 	router, _ := NewRouter([]server.ServerConfig{
 		{
-			Type: server.OpenAiServerType,
+			Type:            server.OpenAiServerType,
+			Endpoint:        "https://azure-openai.com",
+			ApiKey:          "azure-openai-key",
+			AvailableModels: []string{"gpt-3.5-turbo", "gpt-4-turbo"},
 		},
 	}, RoundRobinStrategy)
 	return router

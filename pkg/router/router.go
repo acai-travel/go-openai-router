@@ -16,7 +16,13 @@ type Router struct {
 	strategy     routerStrategy
 }
 
-// NewRouter creates an instance of the Router that routes requests to one or more openai/azureopenai servers
+// NewRouter creates a new Router instance with the given server configurations and strategy type.
+// It returns a pointer to the Router and an error if any.
+// The serverConfigs parameter is a slice of server.ServerConfig that contains the configurations for each server.
+// The strategyType parameter is the type of router strategy to be used.
+// If the serverConfigs slice is empty, it returns an error with the message "empty server config".
+// Otherwise, it creates a new RouterServer for each server configuration and adds them to the servers slice.
+// Finally, it initializes the Router with the servers, serverCount, requestCount, and strategy.
 func NewRouter(serverConfigs []server.ServerConfig, strategyType RouterStrategyType) (*Router, error) {
 	servers := []*server.RouterServer{}
 	if len(serverConfigs) == 0 {
@@ -43,7 +49,12 @@ func NewRouter(serverConfigs []server.ServerConfig, strategyType RouterStrategyT
 // If the operation fails it returns an *azcore.ResponseError type.
 func (r *Router) GetChatCompletions(ctx context.Context, body azopenai.ChatCompletionsOptions, options *azopenai.GetChatCompletionsOptions) (azopenai.GetChatCompletionsResponse, error) {
 	r.requestCount++
-	return r.strategy.GetAvailableServer(r).GetChatCompletions(ctx, body, options)
+	modelName := *body.DeploymentName
+	server := r.strategy.GetAvailableServer(r, modelName)
+	if server == nil {
+		return azopenai.GetChatCompletionsResponse{}, fmt.Errorf("no server available for model %s", modelName)
+	}
+	return server.GetChatCompletions(ctx, body, options)
 }
 
 // GetChatCompletionsStream - Return the chat completions for a given prompt as a sequence of events.
@@ -51,5 +62,10 @@ func (r *Router) GetChatCompletions(ctx context.Context, body azopenai.ChatCompl
 //   - options - GetCompletionsOptions contains the optional parameters for the Client.GetCompletions method.
 func (r *Router) GetChatCompletionsStream(ctx context.Context, body azopenai.ChatCompletionsOptions, options *azopenai.GetChatCompletionsStreamOptions) (azopenai.GetChatCompletionsStreamResponse, error) {
 	r.requestCount++
-	return r.strategy.GetAvailableServer(r).GetChatCompletionsStream(ctx, body, options)
+	modelName := *body.DeploymentName
+	server := r.strategy.GetAvailableServer(r, modelName)
+	if server == nil {
+		return azopenai.GetChatCompletionsStreamResponse{}, fmt.Errorf("no server available for model %s", modelName)
+	}
+	return server.GetChatCompletionsStream(ctx, body, options)
 }

@@ -17,12 +17,15 @@ const (
 	OpenAiServerType      ServerConfigType = "openai"
 )
 
+// ServerConfig represents the configuration for the server.
 type ServerConfig struct {
-	Endpoint string
-	ApiKey   string
-	Type     ServerConfigType
+	Endpoint        string
+	ApiKey          string
+	Type            ServerConfigType
+	AvailableModels []string // AvailableModels is a list of models that are available for the Azure endpoint. The list of models will vary based on the endpoint.
 }
 
+// RouterServer represents the server that the router will use to send requests.
 type RouterServer struct {
 	client            *azopenai.Client
 	ActiveConnections int
@@ -30,15 +33,26 @@ type RouterServer struct {
 	Type              ServerConfigType
 	totalRequests     int64
 	totalLatency      int64
+	AvailableModels   []string // AvailableModels is a list of models that are available for the Azure endpoint. The list of models will vary based on the endpoint.
 }
 
 func NewRouterServer(serverConfig ServerConfig) (*RouterServer, error) {
+	if len(serverConfig.ApiKey) == 0 {
+		return nil, fmt.Errorf("empty api key")
+	}
+	if len(serverConfig.Endpoint) == 0 {
+		return nil, fmt.Errorf("empty endpoint")
+	}
+	if len(serverConfig.AvailableModels) == 0 {
+		return nil, fmt.Errorf("empty available models")
+	}
 	server := &RouterServer{
 		ActiveConnections: 0,
 		totalRequests:     0,
 		Latency:           0,
 		totalLatency:      0,
 		Type:              serverConfig.Type,
+		AvailableModels:   serverConfig.AvailableModels,
 	}
 	keyCredential := azcore.NewKeyCredential(serverConfig.ApiKey)
 	switch serverConfig.Type {
