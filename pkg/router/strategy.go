@@ -37,7 +37,9 @@ func newRouterStrategy(strategyType RouterStrategyType) routerStrategy {
 
 type simpleRoundRobinRouterStrategy struct{}
 
-// Implement simple round robin
+// GetAvailableServer returns an available server from the router based on the provided model name.
+// It filters the servers based on the available models and uses a simple round-robin strategy to select a server.
+// If no server is available for the given model, it returns nil.
 func (s *simpleRoundRobinRouterStrategy) GetAvailableServer(r *Router, modelName string) *server.RouterServer {
 	filteredServers := []*server.RouterServer{}
 	for _, server := range r.servers {
@@ -55,7 +57,8 @@ func (s *simpleRoundRobinRouterStrategy) GetAvailableServer(r *Router, modelName
 
 type leastConnectionServerStrategy struct{}
 
-// Implement least busy using active connections
+// GetAvailableServer returns the server with the least active connections that supports the specified model.
+// If no server is available for the model, it returns nil.
 func (s *leastConnectionServerStrategy) GetAvailableServer(r *Router, modelName string) *server.RouterServer {
 	filteredServers := make([]*server.RouterServer, 0)
 	for _, server := range r.servers {
@@ -79,7 +82,8 @@ func (s *leastConnectionServerStrategy) GetAvailableServer(r *Router, modelName 
 
 type leastLatencyServerStrategy struct{}
 
-// Implement least latency using calculated average latency
+// GetAvailableServer returns the server with the least latency that supports the specified model.
+// If no server is available for the model, it returns nil.
 func (s *leastLatencyServerStrategy) GetAvailableServer(r *Router, modelName string) *server.RouterServer {
 	filteredServers := make([]*server.RouterServer, 0)
 	for _, server := range r.servers {

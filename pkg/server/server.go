@@ -17,6 +17,7 @@ const (
 	OpenAiServerType      ServerConfigType = "openai"
 )
 
+// ServerConfig represents the configuration for the server.
 type ServerConfig struct {
 	Endpoint        string
 	ApiKey          string
@@ -24,6 +25,7 @@ type ServerConfig struct {
 	AvailableModels []string // AvailableModels is a list of models that are available for the Azure endpoint. The list of models will vary based on the endpoint.
 }
 
+// RouterServer represents the server that the router will use to send requests.
 type RouterServer struct {
 	client            *azopenai.Client
 	ActiveConnections int

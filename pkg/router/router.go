@@ -16,7 +16,13 @@ type Router struct {
 	strategy     routerStrategy
 }
 
-// NewRouter creates an instance of the Router that routes requests to one or more openai/azureopenai servers
+// NewRouter creates a new Router instance with the given server configurations and strategy type.
+// It returns a pointer to the Router and an error if any.
+// The serverConfigs parameter is a slice of server.ServerConfig that contains the configurations for each server.
+// The strategyType parameter is the type of router strategy to be used.
+// If the serverConfigs slice is empty, it returns an error with the message "empty server config".
+// Otherwise, it creates a new RouterServer for each server configuration and adds them to the servers slice.
+// Finally, it initializes the Router with the servers, serverCount, requestCount, and strategy.
 func NewRouter(serverConfigs []server.ServerConfig, strategyType RouterStrategyType) (*Router, error) {
 	servers := []*server.RouterServer{}
 	if len(serverConfigs) == 0 {

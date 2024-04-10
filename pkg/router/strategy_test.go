@@ -2,6 +2,7 @@ package router
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/acai-travel/go-openai-router/pkg/server"
@@ -51,7 +52,6 @@ func TestLeastActiveConnectionsStrategy(t *testing.T) {
 	if s.Type != server.AzureOpenAiServerType {
 		t.Fatalf("Incorrect server returned by Least Active Connection Strategy - %s", s.Type)
 	}
-
 }
 
 func TestLeastLatencyStrategy(t *testing.T) {
@@ -61,7 +61,55 @@ func TestLeastLatencyStrategy(t *testing.T) {
 	if s.Type != server.OpenAiServerType {
 		t.Fatalf("Incorrect server returned by Least Latency Strategy - %s", s.Type)
 	}
+}
 
+func TestRoundRobinWithModelAvailability(t *testing.T) {
+	r := getRouterWithModelVariation()
+	strategy := newRouterStrategy(RoundRobinStrategy)
+
+	modelName := "gpt-4-vision-preview"
+	s := strategy.GetAvailableServer(r, modelName)
+	if s.Type != server.OpenAiServerType || !slices.Contains(s.AvailableModels, modelName) {
+		t.Fatalf("Round Robin with Model Availability failed to select correct server for model %s", modelName)
+	}
+
+	modelName = "model-not-available"
+	s = strategy.GetAvailableServer(r, modelName)
+	if s != nil {
+		t.Fatal("Round Robin with Model Availability selected a server for an unavailable model")
+	}
+}
+
+func TestLoadBalancingWithModelAvailability(t *testing.T) {
+	r := getRouterForModelBalancingTest()
+	strategy := newRouterStrategy(LeastConnectionStrategy)
+	modelName := "gpt-4-vision-preview"
+
+	// Make several requests to simulate load balancing
+	for i := 0; i < 6; i++ {
+		s := strategy.GetAvailableServer(r, modelName)
+		if s == nil {
+			t.Fatal("Expected to select a server but got nil")
+		}
+		if !slices.Contains(s.AvailableModels, modelName) {
+			t.Fatalf("Selected server does not support the requested model %s", modelName)
+		}
+
+		// Increment active connections to simulate load
+		s.ActiveConnections++
+
+		// Ensure the third server is never selected
+		if s.Type == server.AzureOpenAiServerType {
+			t.Fatal("Selected server should not have been chosen as it does not support the model")
+		}
+	}
+
+	// After load balancing, check the distribution of active connections
+	if r.servers[0].ActiveConnections == r.servers[1].ActiveConnections {
+		t.Log("Load balancing between servers supporting the model confirmed")
+	} else {
+		t.Fatal("Expected even distribution of load between servers supporting the model")
+	}
 }
 
 func getRouterForActiveConnectionsStrategy() *Router {
@@ -119,6 +167,56 @@ func getRouterForRoundRobinStrategy() *Router {
 			AvailableModels: []string{"gpt-3.5-turbo", "gpt-4-turbo"},
 		},
 	}, RoundRobinStrategy)
+	if err != nil {
+		panic(err)
+	}
+	return router
+}
+
+func getRouterWithModelVariation() *Router {
+	serverConfigs := []server.ServerConfig{
+		{
+			Type:            server.OpenAiServerType,
+			Endpoint:        "https://api.openai.com",
+			ApiKey:          "openai-key",
+			AvailableModels: []string{"gpt-3.5-turbo", "gpt-4-vision-preview"},
+		},
+		{
+			Type:            server.AzureOpenAiServerType,
+			Endpoint:        "https://azure-openai.com",
+			ApiKey:          "azure-openai-key",
+			AvailableModels: []string{"gpt-3.5-turbo"},
+		},
+	}
+	router, err := NewRouter(serverConfigs, RoundRobinStrategy)
+	if err != nil {
+		panic(err)
+	}
+	return router
+}
+
+func getRouterForModelBalancingTest() *Router {
+	serverConfigs := []server.ServerConfig{
+		{
+			Type:            server.OpenAiServerType,
+			Endpoint:        "https://api.openai.com/1",
+			ApiKey:          "key1",
+			AvailableModels: []string{"gpt-4-vision-preview"},
+		},
+		{
+			Type:            server.OpenAiServerType,
+			Endpoint:        "https://api.openai.com/2",
+			ApiKey:          "key2",
+			AvailableModels: []string{"gpt-4-vision-preview"},
+		},
+		{
+			Type:            server.AzureOpenAiServerType,
+			Endpoint:        "https://api.openai.com/3",
+			ApiKey:          "key3",
+			AvailableModels: []string{"gpt-3.5-turbo"},
+		},
+	}
+	router, err := NewRouter(serverConfigs, LeastConnectionStrategy)
 	if err != nil {
 		panic(err)
 	}
