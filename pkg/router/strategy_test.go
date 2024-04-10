@@ -28,17 +28,17 @@ func TestRoundRobinStrategy(t *testing.T) {
 	strategy := newRouterStrategy(RoundRobinStrategy)
 	r := getRouterForRoundRobinStrategy()
 	r.requestCount = 0
-	s := strategy.GetAvailableServer(r)
+	s := strategy.GetAvailableServer(r, "gpt-3.5-turbo")
 	if s.Type != server.OpenAiServerType {
 		t.Fatalf("Incorrect server returned by Round Robin - %s", s.Type)
 	}
 	r.requestCount = 1
-	s = strategy.GetAvailableServer(r)
+	s = strategy.GetAvailableServer(r, "gpt-3.5-turbo")
 	if s.Type != server.AzureOpenAiServerType {
 		t.Fatalf("Incorrect server returned by Round Robin - %s", s.Type)
 	}
 	r.requestCount = 2
-	s = strategy.GetAvailableServer(r)
+	s = strategy.GetAvailableServer(r, "gpt-3.5-turbo")
 	if s.Type != server.OpenAiServerType {
 		t.Fatalf("Incorrect server returned by Round Robin - %s", s.Type)
 	}
@@ -47,7 +47,7 @@ func TestRoundRobinStrategy(t *testing.T) {
 func TestLeastActiveConnectionsStrategy(t *testing.T) {
 	r := getRouterForActiveConnectionsStrategy()
 	strategy := newRouterStrategy(LeastConnectionStrategy)
-	s := strategy.GetAvailableServer(r)
+	s := strategy.GetAvailableServer(r, "gpt-3.5-turbo")
 	if s.Type != server.AzureOpenAiServerType {
 		t.Fatalf("Incorrect server returned by Least Active Connection Strategy - %s", s.Type)
 	}
@@ -57,7 +57,7 @@ func TestLeastActiveConnectionsStrategy(t *testing.T) {
 func TestLeastLatencyStrategy(t *testing.T) {
 	r := getRouterForLeastLatencyStrategy()
 	strategy := newRouterStrategy(LeastLatencyStrategy)
-	s := strategy.GetAvailableServer(r)
+	s := strategy.GetAvailableServer(r, "gpt-3.5-turbo")
 	if s.Type != server.OpenAiServerType {
 		t.Fatalf("Incorrect server returned by Least Latency Strategy - %s", s.Type)
 	}
@@ -67,12 +67,18 @@ func TestLeastLatencyStrategy(t *testing.T) {
 func getRouterForActiveConnectionsStrategy() *Router {
 	s1, _ := server.NewRouterServer(
 		server.ServerConfig{
-			Type: server.OpenAiServerType,
+			Type:            server.OpenAiServerType,
+			Endpoint:        "https://api.openai.com",
+			ApiKey:          "openai-key",
+			AvailableModels: []string{"gpt-3.5-turbo"},
 		})
 	s1.ActiveConnections = 10
 	s2, _ := server.NewRouterServer(
 		server.ServerConfig{
-			Type: server.AzureOpenAiServerType,
+			Type:            server.AzureOpenAiServerType,
+			Endpoint:        "https://api.openai.com",
+			ApiKey:          "openai-key",
+			AvailableModels: []string{"gpt-3.5-turbo"},
 		})
 	s2.ActiveConnections = 8
 	return &Router{servers: []*server.RouterServer{s1, s2}}
@@ -81,25 +87,40 @@ func getRouterForActiveConnectionsStrategy() *Router {
 func getRouterForLeastLatencyStrategy() *Router {
 	s1, _ := server.NewRouterServer(
 		server.ServerConfig{
-			Type: server.OpenAiServerType,
+			Type:            server.OpenAiServerType,
+			Endpoint:        "https://api.openai.com",
+			ApiKey:          "openai-key",
+			AvailableModels: []string{"gpt-3.5-turbo"},
 		})
 	s1.Latency = 100
 	s2, _ := server.NewRouterServer(
 		server.ServerConfig{
-			Type: server.AzureOpenAiServerType,
+			Type:            server.AzureOpenAiServerType,
+			Endpoint:        "https://api.openai.com",
+			ApiKey:          "openai-key",
+			AvailableModels: []string{"gpt-3.5-turbo"},
 		})
 	s2.Latency = 6000
 	return &Router{servers: []*server.RouterServer{s1, s2}}
 }
 
 func getRouterForRoundRobinStrategy() *Router {
-	router, _ := NewRouter([]server.ServerConfig{
+	router, err := NewRouter([]server.ServerConfig{
 		{
-			Type: server.OpenAiServerType,
+			Type:            server.OpenAiServerType,
+			Endpoint:        "https://api.openai.com",
+			ApiKey:          "openai-key",
+			AvailableModels: []string{"gpt-3.5-turbo"},
 		},
 		{
-			Type: server.AzureOpenAiServerType,
+			Type:            server.AzureOpenAiServerType,
+			Endpoint:        "https://azure-openai.com",
+			ApiKey:          "azure-openai-key",
+			AvailableModels: []string{"gpt-3.5-turbo", "gpt-4-turbo"},
 		},
 	}, RoundRobinStrategy)
+	if err != nil {
+		panic(err)
+	}
 	return router
 }
