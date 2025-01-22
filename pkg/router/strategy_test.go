@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/acai-travel/go-openai-router/pkg/server"
+	"github.com/acai-travel/go-openai-router/v2/pkg/server"
 )
 
 func TestNewRouterStrategy(t *testing.T) {
