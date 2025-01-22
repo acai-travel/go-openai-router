@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai"
 	"github.com/acai-travel/go-openai-router/pkg/server"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
+	"github.com/openai/openai-go/packages/ssestream"
 )
 
 type Router struct {
@@ -47,25 +49,25 @@ func NewRouter(serverConfigs []server.ServerConfig, strategyType RouterStrategyT
 // GetChatCompletions - Gets chat completions for the provided chat messages. Completions support a wide variety of tasks
 // and generate text that continues from or "completes" provided prompt data.
 // If the operation fails it returns an *azcore.ResponseError type.
-func (r *Router) GetChatCompletions(ctx context.Context, body azopenai.ChatCompletionsOptions, options *azopenai.GetChatCompletionsOptions) (azopenai.GetChatCompletionsResponse, error) {
+func (r *Router) GetChatCompletions(ctx context.Context, body openai.ChatCompletionNewParams, opts ...option.RequestOption) (*openai.ChatCompletion, error) {
 	r.requestCount++
-	modelName := *body.DeploymentName
+	modelName := body.Model.String()
 	server := r.strategy.GetAvailableServer(r, modelName)
 	if server == nil {
-		return azopenai.GetChatCompletionsResponse{}, fmt.Errorf("no server available for model %s", modelName)
+		return nil, fmt.Errorf("no server available for model %s", modelName)
 	}
-	return server.GetChatCompletions(ctx, body, options)
+	return server.NewCompletion(ctx, body, opts...)
 }
 
 // GetChatCompletionsStream - Return the chat completions for a given prompt as a sequence of events.
 // If the operation fails it returns an *azcore.ResponseError type.
 //   - options - GetCompletionsOptions contains the optional parameters for the Client.GetCompletions method.
-func (r *Router) GetChatCompletionsStream(ctx context.Context, body azopenai.ChatCompletionsOptions, options *azopenai.GetChatCompletionsStreamOptions) (azopenai.GetChatCompletionsStreamResponse, error) {
+func (r *Router) GetChatCompletionsStream(ctx context.Context, body openai.ChatCompletionNewParams, opts ...option.RequestOption) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
 	r.requestCount++
-	modelName := *body.DeploymentName
+	modelName := body.Model.String()
 	server := r.strategy.GetAvailableServer(r, modelName)
 	if server == nil {
-		return azopenai.GetChatCompletionsStreamResponse{}, fmt.Errorf("no server available for model %s", modelName)
+		return nil, fmt.Errorf("no server available for model %s", modelName)
 	}
-	return server.GetChatCompletionsStream(ctx, body, options)
+	return server.NewStreamingCompletion(ctx, body, opts...), nil
 }

@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai"
 	"github.com/acai-travel/go-openai-router/pkg/server"
+	"github.com/openai/openai-go"
 )
 
 func TestNewRouter(t *testing.T) {
@@ -28,10 +28,10 @@ func TestNewRouter(t *testing.T) {
 
 func TestGetChatCompletions(t *testing.T) {
 	router := getRouter()
-	deploymentName := "gpt-3.5-turbo"
-	router.GetChatCompletions(context.TODO(), azopenai.ChatCompletionsOptions{
-		DeploymentName: &deploymentName,
-	}, nil)
+	deploymentName := openai.ChatModelGPT3_5Turbo
+	router.GetChatCompletions(context.TODO(), openai.ChatCompletionNewParams{
+		Model: openai.F(deploymentName),
+	})
 	if router.requestCount != 1 {
 		t.Fatalf("Incorrect requests count %d", router.requestCount)
 	}
@@ -39,10 +39,10 @@ func TestGetChatCompletions(t *testing.T) {
 
 func TestGetChatCompletionsStream(t *testing.T) {
 	router := getRouter()
-	deploymentName := "gpt-3.5-turbo"
-	router.GetChatCompletions(context.TODO(), azopenai.ChatCompletionsOptions{
-		DeploymentName: &deploymentName,
-	}, nil)
+	deploymentName := openai.ChatModelGPT3_5Turbo
+	router.GetChatCompletions(context.TODO(), openai.ChatCompletionNewParams{
+		Model: openai.F(deploymentName),
+	})
 	if router.requestCount != 1 {
 		t.Fatalf("Incorrect requests count %d", router.requestCount)
 	}
