@@ -1,6 +1,6 @@
 module github.com/acai-travel/go-openai-router
 
-go 1.21.2
+go 1.23.4
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai v0.5.0
