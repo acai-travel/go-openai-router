@@ -6,8 +6,10 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/azure"
+	"github.com/openai/openai-go/option"
+	"github.com/openai/openai-go/packages/ssestream"
 )
 
 type ServerConfigType string
@@ -27,7 +29,7 @@ type ServerConfig struct {
 
 // RouterServer represents the server that the router will use to send requests.
 type RouterServer struct {
-	client            *azopenai.Client
+	client            *openai.Client
 	ActiveConnections int
 	Latency           int64
 	Type              ServerConfigType
@@ -36,7 +38,11 @@ type RouterServer struct {
 	AvailableModels   []string // AvailableModels is a list of models that are available for the Azure endpoint. The list of models will vary based on the endpoint.
 }
 
+// Hardcoded, should fix this
+const azureOpenAIAPIVersion = "2024-06-01"
+
 func NewRouterServer(serverConfig ServerConfig) (*RouterServer, error) {
+	var err error
 	if len(serverConfig.ApiKey) == 0 {
 		return nil, fmt.Errorf("empty api key")
 	}
@@ -54,14 +60,18 @@ func NewRouterServer(serverConfig ServerConfig) (*RouterServer, error) {
 		Type:              serverConfig.Type,
 		AvailableModels:   serverConfig.AvailableModels,
 	}
-	keyCredential := azcore.NewKeyCredential(serverConfig.ApiKey)
 	switch serverConfig.Type {
 	case AzureOpenAiServerType:
-		client, err := azopenai.NewClientWithKeyCredential(serverConfig.Endpoint, keyCredential, nil)
+		client := openai.NewClient(
+			azure.WithEndpoint(serverConfig.Endpoint, azureOpenAIAPIVersion),
+			azure.WithAPIKey(serverConfig.ApiKey),
+		)
 		server.client = client
 		return server, err
 	case OpenAiServerType:
-		client, err := azopenai.NewClientForOpenAI(serverConfig.Endpoint, keyCredential, nil)
+		client := openai.NewClient(
+			option.WithAPIKey(serverConfig.ApiKey),
+		)
 		server.client = client
 		return server, err
 	default:
@@ -69,24 +79,24 @@ func NewRouterServer(serverConfig ServerConfig) (*RouterServer, error) {
 	}
 }
 
-// GetChatCompletions - Gets chat completions for the provided chat messages. Completions support a wide variety of tasks
-// and generate text that continues from or "completes" provided prompt data.
-// If the operation fails it returns an *azcore.ResponseError type.
-func (s *RouterServer) GetChatCompletions(ctx context.Context, body azopenai.ChatCompletionsOptions, options *azopenai.GetChatCompletionsOptions) (azopenai.GetChatCompletionsResponse, error) {
+// Returns the completion.
+// If the operation fails it returns an error type
+//   - options - ChatCompletionNewParams contains the optional parameters for the Client.Chat.Completions.New method.
+func (s *RouterServer) NewCompletion(ctx context.Context, body openai.ChatCompletionNewParams, opts ...option.RequestOption) (*openai.ChatCompletion, error) {
 	s.preFlight()
 	start := time.Now()
 	defer s.postFlight(start)
-	return s.client.GetChatCompletions(ctx, body, options)
+	return s.client.Chat.Completions.New(ctx, body, opts...)
 }
 
-// GetChatCompletionsStream - Return the chat completions for a given prompt as a sequence of events.
-// If the operation fails it returns an *azcore.ResponseError type.
-//   - options - GetCompletionsOptions contains the optional parameters for the Client.GetCompletions method.
-func (s *RouterServer) GetChatCompletionsStream(ctx context.Context, body azopenai.ChatCompletionsOptions, options *azopenai.GetChatCompletionsStreamOptions) (azopenai.GetChatCompletionsStreamResponse, error) {
+// Streams the completion.
+// If the operation fails it returns an error type
+//   - options - ChatCompletionNewParams contains the optional parameters for the Client.Chat.Completions.NewStreaming method.
+func (s *RouterServer) NewStreamingCompletion(ctx context.Context, body openai.ChatCompletionNewParams, options ...option.RequestOption) *ssestream.Stream[openai.ChatCompletionChunk] {
 	s.preFlight()
 	start := time.Now()
 	defer s.postFlight(start)
-	return s.client.GetChatCompletionsStream(ctx, body, options)
+	return s.client.Chat.Completions.NewStreaming(ctx, body, options...)
 }
 
 func (s *RouterServer) preFlight() {
