@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"slices"
 
-	"github.com/acai-travel/go-openai-router/pkg/server"
+	"github.com/acai-travel/go-openai-router/v2/pkg/server"
 )
 
 type RouterStrategyType string

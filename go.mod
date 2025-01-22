@@ -1,4 +1,4 @@
-module github.com/acai-travel/go-openai-router
+module github.com/acai-travel/go-openai-router/v2
 
 go 1.23.4
 
