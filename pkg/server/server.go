@@ -22,6 +22,7 @@ const (
 // ServerConfig represents the configuration for the server.
 type ServerConfig struct {
 	Endpoint        string
+	AzureAPIVersion string
 	ApiKey          string
 	Type            ServerConfigType
 	AvailableModels []string // AvailableModels is a list of models that are available for the Azure endpoint. The list of models will vary based on the endpoint.
@@ -37,9 +38,6 @@ type RouterServer struct {
 	totalLatency      int64
 	AvailableModels   []string // AvailableModels is a list of models that are available for the Azure endpoint. The list of models will vary based on the endpoint.
 }
-
-// Hardcoded, should fix this
-const azureOpenAIAPIVersion = "2024-06-01"
 
 func NewRouterServer(serverConfig ServerConfig) (*RouterServer, error) {
 	var err error
@@ -62,8 +60,11 @@ func NewRouterServer(serverConfig ServerConfig) (*RouterServer, error) {
 	}
 	switch serverConfig.Type {
 	case AzureOpenAiServerType:
+		if len(serverConfig.AzureAPIVersion) == 0 {
+			return nil, fmt.Errorf("empty version")
+		}
 		client := openai.NewClient(
-			azure.WithEndpoint(serverConfig.Endpoint, azureOpenAIAPIVersion),
+			azure.WithEndpoint(serverConfig.Endpoint, serverConfig.AzureAPIVersion),
 			azure.WithAPIKey(serverConfig.ApiKey),
 		)
 		server.client = client
